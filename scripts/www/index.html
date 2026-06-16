@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>武器对决 · 音效版（静默无文件）</title>
+    <style>
+        * { user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .game-container { background: #2b2b2b; border-radius: 28px; padding: 18px; box-shadow: 0 20px 35px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; }
+        canvas { display: block; margin: 0 auto; border-radius: 16px; box-shadow: 0 0 0 4px #f5c542, 0 8px 20px rgba(0,0,0,0.3); background-color: #3c2a1f; cursor: crosshair; }
+        #mainCanvas { background-image: linear-gradient(#5e3a1f 1px, transparent 1px), linear-gradient(90deg, #5e3a1f 1px, transparent 1px); background-size: 20px 20px; }
+        .focus-container { margin-top: 16px; text-align: center; }
+        .focus-label { color: #ffd966; font-size: 0.7rem; margin-bottom: 5px; background: #1e1e1eaa; display: inline-block; padding: 2px 12px; border-radius: 20px; }
+        #focusCanvas { background-color: #2b5a2e; background-image: linear-gradient(#5e3a1f 1px, transparent 1px), linear-gradient(90deg, #5e3a1f 1px, transparent 1px); background-size: 20px 20px; border-radius: 8px; box-shadow: 0 0 0 2px #ffb347; }
+        .selector-panel { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; background: #1e1e1e; padding: 8px 16px; border-radius: 60px; flex-wrap: wrap; }
+        .select-btn { background: #333; border: none; font-family: monospace; font-weight: bold; font-size: 0.85rem; padding: 6px 14px; border-radius: 40px; cursor: pointer; transition: 0.1s; color: #eee; box-shadow: 0 2px 4px black; }
+        .select-btn.selected { background: #ffb347; color: #2c1a0a; box-shadow: 0 0 0 2px gold; }
+        .fight-btn { background: #4caf50; color: white; border: none; font-weight: bold; font-size: 0.95rem; padding: 6px 18px; border-radius: 40px; cursor: pointer; box-shadow: 0 3px 0 #1b5e20; }
+        .fight-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #1b5e20; }
+        .info-panel { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; flex-wrap: wrap; width: 100%; }
+        .team-column { flex: 1; display: flex; flex-direction: column; gap: 8px; background: #1e1e1e88; border-radius: 20px; padding: 8px; backdrop-filter: blur(2px); max-height: 260px; overflow-y: auto; }
+        .team-title { text-align: center; font-size: 0.9rem; font-weight: bold; padding: 4px; border-radius: 30px; background: #00000066; color: #ffd966; }
+        .fighter-card { background: #1e1e1e; border-radius: 16px; padding: 6px 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3); font-size: 0.7rem; position: relative; }
+        .upload-btn { background: #444; color: white; border: none; border-radius: 20px; font-size: 0.6rem; padding: 2px 8px; margin-left: 8px; cursor: pointer; }
+        .reset-skin-btn { background: #ff8844; color: white; border: none; border-radius: 20px; font-size: 0.6rem; padding: 2px 8px; margin-left: 8px; cursor: pointer; }
+        .global-reset { background: #ffb347; border: none; font-family: monospace; font-weight: bold; font-size: 0.7rem; padding: 4px 12px; border-radius: 40px; margin-top: 8px; cursor: pointer; }
+        .fighter-name { font-size: 0.9rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .gold-name { color: #ffcc66; }
+        .diamond-name { color: #9ae6ff; }
+        .axe-name { color: #e0a878; }
+        .crossbow-name { color: #b8d870; }
+        .slime-name { color: #a0e07a; }
+        .energy-name { color: #ff99cc; }
+        .block-name { color: #cc99ff; }
+        .shield-name { color: #88ccff; }
+        .hp-bar-bg { background: #4a2a2a; border-radius: 40px; height: 10px; margin: 5px 0; overflow: hidden; }
+        .hp-fill { width: 100%; height: 100%; transition: width 0.1s linear; }
+        .gold-hp { background: linear-gradient(90deg, #ff9966, #ff5e00); }
+        .diamond-hp { background: linear-gradient(90deg, #6dd5ff, #2980b9); }
+        .axe-hp { background: linear-gradient(90deg, #e0a878, #b87333); }
+        .crossbow-hp { background: linear-gradient(90deg, #a8d870, #6b8e23); }
+        .slime-hp { background: linear-gradient(90deg, #b0e08a, #6c9e4a); }
+        .energy-hp { background: linear-gradient(90deg, #ff99cc, #cc66aa); }
+        .block-hp { background: linear-gradient(90deg, #cc99ff, #9966cc); }
+        .shield-hp { background: linear-gradient(90deg, #88ccff, #4488aa); }
+        .skill-info, .attack-info { display: flex; justify-content: space-between; align-items: center; font-size: 0.6rem; background: #00000066; padding: 2px 6px; border-radius: 40px; margin-top: 3px; }
+        .reset-btn { background: #ffb347; border: none; font-family: monospace; font-weight: bold; font-size: 0.9rem; padding: 5px 18px; border-radius: 60px; margin-top: 12px; cursor: pointer; box-shadow: 0 3px 0 #8b5a2b; color: #2c1a0a; }
+        .victory-message { text-align: center; font-size: 0.9rem; font-weight: bold; background: #000000aa; backdrop-filter: blur(5px); padding: 4px 10px; border-radius: 40px; color: gold; margin-top: 10px; }
+        .volume-control { display: flex; align-items: center; gap: 8px; margin-top: 8px; background: #1e1e1eaa; padding: 4px 12px; border-radius: 40px; }
+        .volume-control label { font-size: 0.7rem; color: #ffd966; }
+        .volume-slider { width: 100px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div>
+    <div class="game-container">
+        <div class="selector-panel" id="selectorPanel">
+            <button class="select-btn" data-weapon="gold">⚔️ 金剑</button>
+            <button class="select-btn" data-weapon="diamond">💎 钻石剑</button>
+            <button class="select-btn" data-weapon="axe">🪓 斧头</button>
+            <button class="select-btn" data-weapon="crossbow">🏹 弩箭</button>
+            <button class="select-btn" data-weapon="slime">🟢 粘液块</button>
+            <button class="select-btn" data-weapon="energy">⚡ 能量块</button>
+            <button class="select-btn" data-weapon="block">🔇 禁模块</button>
+            <button class="select-btn" data-weapon="shield">🛡️ 反射之盾</button>
+            <button class="fight-btn" id="startFightBtn">⚔️ 开始单挑 ⚔️</button>
+        </div>
+        <canvas id="mainCanvas" width="800" height="800" style="width:100%; height:auto; max-width:800px; aspect-ratio:1/1"></canvas>
+        <div class="focus-container" id="focusContainer" style="display: none;">
+            <div class="focus-label">🔍 聚焦视图 (120x120)</div>
+            <canvas id="focusCanvas" width="120" height="120" style="width:120px; height:120px; border-radius:8px;"></canvas>
+        </div>
+        <div class="info-panel" id="infoPanel"></div>
+        <div class="volume-control">
+            <label>🔊 音量</label>
+            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.01" value="0.6">
+            <span id="volumeValue">60%</span>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 12px; margin-top: 8px;">
+            <button class="global-reset" id="resetAllSkins">🖼️ 重置所有武器贴图</button>
+            <button class="reset-btn" id="resetGameBtn">🔄 重置对局</button>
+        </div>
+        <div id="victoryMsg" class="victory-message" style="display: none;"></div>
+    </div>
+</div>
+<script>
+// ======================== 🎵 音效模块（自动检测文件存在性，不存在则静默跳过） ========================
+const SOUND_SETTINGS = {
+    attack: './sounds/attack.wav',
+    skill: './sounds/skill.wav',
+    hit: './sounds/hit.wav',
+    die: './sounds/die.wav',
+    bgm: './sounds/bgm.mp3',
+    volume: 0.6
+};
+
+let bgmElement = null;
+let audioEnabled = false;
+let soundAvailable = { attack: false, skill: false, hit: false, die: false, bgm: false };
+
+// 预加载一个音效，检测是否可用
+function testSound(url, callback) {
+    if (!url) return callback(false);
+    let audio = new Audio();
+    audio.addEventListener('canplaythrough', () => callback(true), { once: true });
+    audio.addEventListener('error', () => callback(false), { once: true });
+    audio.src = url;
+    audio.load();
+}
+
+// 启用音频（用户交互后调用）
+function enableAudio() {
+    if (audioEnabled) return;
+    audioEnabled = true;
+    // 测试所有音效是否可用
+    for (let key in SOUND_SETTINGS) {
+        if (key === 'bgm') continue;
+        let url = SOUND_SETTINGS[key];
+        if (!url) continue;
+        testSound(url, (ok) => {
+            soundAvailable[key] = ok;
+            if (!ok) console.log(`音效 ${key} 文件不存在，将静默跳过`);
+        });
+    }
+    // 背景音乐单独处理
+    if (SOUND_SETTINGS.bgm) {
+        testSound(SOUND_SETTINGS.bgm, (ok) => {
+            soundAvailable.bgm = ok;
+            if (ok) {
+                bgmElement = new Audio(SOUND_SETTINGS.bgm);
+                bgmElement.loop = true;
+                bgmElement.volume = SOUND_SETTINGS.volume;
+                bgmElement.play().catch(e => console.log('BGM自动播放被阻止，但音效已可用'));
+            } else {
+                console.log('背景音乐文件不存在，将不播放');
+            }
+        });
+    }
+}
+
+// 播放单次音效（仅当文件存在时）
+function playSound(name) {
+    if (!audioEnabled) return;
+    if (!soundAvailable[name]) return;
+    let url = SOUND_SETTINGS[name];
+    if (!url) return;
+    let audio = new Audio(url);
+    audio.volume = SOUND_SETTINGS.volume;
+    audio.play().catch(e => console.log('播放失败', e));
+}
+
+// 用户首次交互时启用音频
+function setupAudioOnInteraction() {
+    const events = ['click', 'touchstart', 'keydown'];
+    const handler = () => {
+        enableAudio();
+        events.forEach(ev => document.removeEventListener(ev, handler));
+    };
+    events.forEach(ev => document.addEventListener(ev, handler));
+}
+setupAudioOnInteraction();
+
+// 音量控制
+const volumeSlider = document.getElementById('volumeSlider');
+if (volumeSlider) {
+    volumeSlider.addEventListener('input', (e) => {
+        let vol = parseFloat(e.target.value);
+        document.getElementById('volumeValue').innerText = Math.round(vol * 100) + '%';
+        SOUND_SETTINGS.volume = vol;
+        if (bgmElement) bgmElement.volume = vol;
+    });
+}
+
+// ======================== 以下为原游戏完整代码（不变） ========================
+(function(){
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 800, H = 800;
+    canvas.width = W; canvas.height = H;
+    const MAX_HP_BASE = 1000;
+
+    const focusCanvas = document.getElementById('focusCanvas');
+    const focusCtx = focusCanvas.getContext('2d');
+    const focusContainer = document.getElementById('focusContainer');
+    let focusUnit = null;
+    const FOCUS_SIZE = 120;
+
+    // 武器模板
+    const WEAPON_TEMPLATES = {
+        gold: { name: "金剑", type: "gold", baseDamage: 100, attackCdMax: 28, moveSpeed: 2.8, skillCdMax: 120, skillName: "金锭投射 (120伤 可反弹)", colorClass: "gold-card", canAttack: true, isRanged: false, maxHp: MAX_HP_BASE, splitLevel: 0 },
+        diamond: { name: "钻石剑", type: "diamond", baseDamage: 280, attackCdMax: 45, moveSpeed: 2.6, skillCdMax: 198, skillName: "强化 (+100临时攻5s +90%减伤 +移速靠近)", colorClass: "diamond-card", canAttack: true, isRanged: false, maxHp: MAX_HP_BASE, splitLevel: 0 },
+        axe: { name: "斧头", type: "axe", baseDamage: 0, attackCdMax: 9999, moveSpeed: 2.7, skillCdMax: 360, skillName: "雷霆冲撞 (490伤+眩晕，冲刺减伤80%)", colorClass: "axe-card", canAttack: false, isRanged: false, maxHp: MAX_HP_BASE, splitLevel: 0 },
+        crossbow: { name: "弩箭", type: "crossbow", baseDamage: 30, attackCdMax: 35, moveSpeed: 2.5, skillCdMax: 240, skillName: "爆炸箭 (250伤)", colorClass: "crossbow-card", canAttack: true, isRanged: true, maxHp: MAX_HP_BASE, splitLevel: 0, projectileSpeed: 9, range: 380, empoweredDamage: 250 },
+        slime: { name: "粘液块", type: "slime", baseDamage: 70, attackCdMax: 30, moveSpeed: 2.5, skillCdMax: 300, skillName: "粘液球 (禁普攻1.2s+减速60%)", colorClass: "slime-card", canAttack: true, isRanged: false, maxHp: 1200, splitLevel: 2, splitFactor: 2/3 },
+        energy: { name: "能量块", type: "energy", baseDamage: 0, attackCdMax: 9999, moveSpeed: 2.6, skillCdMax: 300, skillName: "激光 (锁定1.5s后发射，每帧2伤，2.5秒)", colorClass: "energy-card", canAttack: false, isRanged: false, maxHp: 800, splitLevel: 0 },
+        block: { name: "禁模块", type: "block", baseDamage: 80, attackCdMax: 28, moveSpeed: 2.7, skillCdMax: 300, skillName: "禁魔符文 (沉默1.5s+重置CD+永久+2sCD/或自增益)", colorClass: "block-card", canAttack: true, isRanged: false, maxHp: MAX_HP_BASE, splitLevel: 0 },
+        shield: { name: "反射之盾", type: "shield", baseDamage: 0, attackCdMax: 9999, moveSpeed: 2.8, skillCdMax: 300, skillName: "格挡强化 (+20格挡5s)", colorClass: "shield-card", canAttack: false, isRanged: false, maxHp: MAX_HP_BASE, splitLevel: 0 }
+    };
+
+    let units = [], selectedWeapons = ["gold", "diamond"], gameOver = false, winnerSide = null, animationId = null;
+    let floatingTexts = [], projectiles = [];
+    let activeLasers = new Map(), activeShields = new Map();
+    let silenceEffects = new Map();
+    let extendedCdSet = new Set();
+    let camX = W/2 - canvas.width/2, camY = H/2 - canvas.height/2;
+    camX = Math.min(Math.max(camX, 0), W - canvas.width);
+    camY = Math.min(Math.max(camY, 0), H - canvas.height);
+
+    // 贴图系统
+    let weaponImages = {};
+    const SKIN_STORAGE_KEY = "weapon_skins";
+    function generateDefaultSkin(weaponType, weaponName) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const c = canvas.getContext('2d');
+        let grad = c.createLinearGradient(0,0,64,64);
+        switch(weaponType) {
+            case 'gold': grad.addColorStop(0,'#f0b27a'); grad.addColorStop(1,'#d48c3c'); break;
+            case 'diamond': grad.addColorStop(0,'#7dd3fc'); grad.addColorStop(1,'#3b82f6'); break;
+            case 'axe': grad.addColorStop(0,'#b87333'); grad.addColorStop(1,'#8b5a2b'); break;
+            case 'crossbow': grad.addColorStop(0,'#8b5a2b'); grad.addColorStop(1,'#6b8e23'); break;
+            case 'slime': grad.addColorStop(0,'#8bcc6e'); grad.addColorStop(1,'#6a9e4a'); break;
+            case 'energy': grad.addColorStop(0,'#cc66ff'); grad.addColorStop(1,'#ff99ff'); break;
+            case 'block': grad.addColorStop(0,'#aa66ff'); grad.addColorStop(1,'#dd99ff'); break;
+            case 'shield': grad.addColorStop(0,'#66ccff'); grad.addColorStop(1,'#3399cc'); break;
+            default: grad.addColorStop(0,'#ccc'); grad.addColorStop(1,'#aaa');
+        }
+        c.fillStyle = grad; c.fillRect(0,0,64,64);
+        c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(2,2,60,60);
+        c.font = 'bold 28px monospace'; c.fillStyle = '#ffffff'; c.shadowBlur = 4; c.shadowColor = 'black';
+        let icon = "";
+        switch(weaponType) {
+            case 'gold': icon = "⚔️"; break;
+            case 'diamond': icon = "💎"; break;
+            case 'axe': icon = "🪓"; break;
+            case 'crossbow': icon = "🏹"; break;
+            case 'slime': icon = "🟢"; break;
+            case 'energy': icon = "⚡"; break;
+            case 'block': icon = "🔇"; break;
+            case 'shield': icon = "🛡️"; break;
+        }
+        c.fillText(icon, 16, 48);
+        c.font = 'bold 12px monospace'; c.fillStyle = '#ffffaa'; c.fillText(weaponName[0], 28, 20);
+        return canvas;
+    }
+    function loadAllSkins() {
+        let saved = localStorage.getItem(SKIN_STORAGE_KEY);
+        let skinMap = saved ? JSON.parse(saved) : {};
+        for (let key in WEAPON_TEMPLATES) {
+            if (skinMap[key]) {
+                let img = new Image();
+                img.src = skinMap[key];
+                weaponImages[key] = img;
+            } else {
+                weaponImages[key] = generateDefaultSkin(key, WEAPON_TEMPLATES[key].name);
+            }
+        }
+    }
+    function saveSkin(weaponType, imgElement) {
+        let tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 64; tempCanvas.height = 64;
+        let tCtx = tempCanvas.getContext('2d');
+        tCtx.drawImage(imgElement, 0, 0, 64, 64);
+        let dataURL = tempCanvas.toDataURL('image/png');
+        let saved = localStorage.getItem(SKIN_STORAGE_KEY);
+        let skinMap = saved ? JSON.parse(saved) : {};
+        skinMap[weaponType] = dataURL;
+        localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify(skinMap));
+        let newImg = new Image();
+        newImg.src = dataURL;
+        newImg.onload = () => { weaponImages[weaponType] = newImg; };
+    }
+    function replaceWeaponSkin(weaponType, file) {
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = (ev) => {
+            let img = new Image();
+            img.onload = () => {
+                weaponImages[weaponType] = img;
+                saveSkin(weaponType, img);
+                showFloatingText(400, 400, `${WEAPON_TEMPLATES[weaponType].name} 贴图已更换`, "#aaffaa");
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function resetAllSkins() {
+        localStorage.removeItem(SKIN_STORAGE_KEY);
+        for (let key in WEAPON_TEMPLATES) {
+            weaponImages[key] = generateDefaultSkin(key, WEAPON_TEMPLATES[key].name);
+        }
+        showFloatingText(400, 400, "所有武器贴图已重置", "#aaffaa");
+    }
+
+    function showFloatingText(x,y,text,color="#ffffff"){ floatingTexts.push({x,y,text,life:32,color}); }
+    function updateFloatingTexts(){ for(let i=0;i<floatingTexts.length;i++){ floatingTexts[i].life--; floatingTexts[i].y-=0.8; if(floatingTexts[i].life<=0) floatingTexts.splice(i,1), i--; } }
+    function getDamage(unit){
+        let base = unit.baseDamage;
+        if(unit.weaponType==='diamond') base += (unit.bonusDamage || 0);
+        if(unit.tempDamageBonus && unit.tempDamageRemaining>0) base += unit.tempDamageBonus;
+        return base;
+    }
+
+    function interruptOngoingSkills(target){
+        if(activeLasers.has(target.id)){
+            let laser = activeLasers.get(target.id);
+            if(laser.willGrantShield) applyShieldAndBoost(target, 300, 360);
+            activeLasers.delete(target.id);
+        }
+        if(target.isCharging){
+            target.isCharging = false;
+            target.vx = target.originalVx;
+            target.vy = target.originalVy;
+            target.isImmune = false;
+            target.damageReduction = 0;
+            target.damageReductionRemaining = 0;
+            showFloatingText(target.x, target.y-20, "⚡ 冲刺被打断", "#ffaa66");
+        }
+        if(target.weaponType === 'energy'){
+            target.isLocking = false;
+            target.lockingRemaining = 0;
+        }
+    }
+    function resetSkillCd(target){
+        if(target.skillCd > 0){
+            let fullCd = target.skillCdMax + (target.extraCdMax || 0);
+            target.skillCd = fullCd;
+            showFloatingText(target.x, target.y-25, "⏳ 技能CD已重置", "#ffaa88");
+        }
+    }
+    function tryAddPermanentCdIncrease(target, caster){
+        if(target.weaponType === 'axe') return false;
+        if(extendedCdSet.has(target.id)){
+            if(caster){
+                caster.speedBuffPercent = 10;
+                caster.speedBuffRemaining = 300;
+                caster.tempDamageBonus = (caster.tempDamageBonus || 0) + 40;
+                caster.tempDamageRemaining = 300;
+                showFloatingText(caster.x, caster.y-20, "⚡ 能量反哺 +10%移速 +40伤 (5秒)", "#aaffaa");
+            }
+            return false;
+        } else {
+            extendedCdSet.add(target.id);
+            let addFrames = 120;
+            target.extraCdMax = (target.extraCdMax || 0) + addFrames;
+            if(target.skillCd > 0) target.skillCd += addFrames;
+            showFloatingText(target.x, target.y-20, `⏳ 技能CD永久+2秒`, "#ffaa88");
+            return true;
+        }
+    }
+    function applyShieldAndBoost(unit, shieldAmount, durationFrames){
+        activeShields.set(unit.id, { shield: shieldAmount, remainingFrames: durationFrames });
+        unit.speedBuffPercent = 50;
+        unit.speedBuffRemaining = 90;
+        showFloatingText(unit.x, unit.y-15, `⚡ 获得护盾+300 移速+50%`, "#ccffcc");
+        let enemy = getNearestEnemy(unit);
+        if(enemy){
+            let dx = unit.x - enemy.x, dy = unit.y - enemy.y, len = Math.hypot(dx,dy);
+            if(len > 0.01){
+                let normX = dx/len, normY = dy/len, speed = Math.hypot(unit.vx, unit.vy);
+                if(speed < 0.5) speed = unit.moveSpeed;
+                unit.vx = normX * speed; unit.vy = normY * speed;
+                showFloatingText(unit.x, unit.y-10, "💨 远离敌人", "#aaffff");
+            }
+        }
+    }
+    function applyApproachBoost(unit){
+        unit.speedBuffPercent = 50;
+        unit.speedBuffRemaining = 120;
+        showFloatingText(unit.x, unit.y-15, "⚡ 移速+50% 靠近敌人", "#ffaa88");
+        let enemy = getNearestEnemy(unit);
+        if(enemy){
+            let dx = enemy.x - unit.x, dy = enemy.y - unit.y, len = Math.hypot(dx,dy);
+            if(len > 0.01){
+                let normX = dx/len, normY = dy/len, speed = Math.hypot(unit.vx, unit.vy);
+                if(speed < 0.5) speed = unit.moveSpeed;
+                unit.vx = normX * speed; unit.vy = normY * speed;
+                showFloatingText(unit.x, unit.y-10, "💨 冲向敌人", "#ffaa88");
+            }
+        }
+    }
+
+    function createUnit(weaponId, side, x, y, vx, vy, splitLevel=0, parentBonusDamage=0, parentBlock=0){
+        const tpl = WEAPON_TEMPLATES[weaponId];
+        if(!tpl) return null;
+        let hp = tpl.maxHp, baseDamage = tpl.baseDamage, radius = 26;
+        if(weaponId==='slime' && splitLevel>0){
+            let factor = Math.pow(tpl.splitFactor, splitLevel);
+            hp = Math.floor(tpl.maxHp * factor);
+            baseDamage = Math.floor(tpl.baseDamage * factor);
+            radius = 26 - splitLevel*3;
+            if(radius<14) radius=14;
+        }
+        let unit = {
+            id: Math.random()+performance.now(),
+            weaponType: weaponId,
+            side: side,
+            x, y, vx, vy,
+            radius: radius,
+            hp: hp,
+            maxHp: hp,
+            baseDamage: baseDamage,
+            bonusDamage: (weaponId==='diamond') ? (parentBonusDamage||0) : 0,
+            block: (weaponId==='diamond') ? (parentBlock||0) : 0,
+            attackCd: 0,
+            attackCdMax: tpl.attackCdMax,
+            skillCd: 0,
+            skillCdMax: tpl.skillCdMax,
+            hitFlash: 0,
+            canAttack: tpl.canAttack,
+            isRanged: tpl.isRanged,
+            stunRemaining: 0,
+            isCharging: false,
+            chargeRemaining: 0,
+            chargeDirX: 0, chargeDirY: 0,
+            originalVx: 0, originalVy: 0,
+            nextAttackEmpowered: false,
+            splitLevel: splitLevel,
+            maxSplitLevel: tpl.splitLevel || 0,
+            moveSpeed: tpl.moveSpeed,
+            projectileSpeed: tpl.projectileSpeed || 7.0,
+            range: tpl.range || 250,
+            empoweredDamage: tpl.empoweredDamage || 0,
+            disableAttackRemaining: 0,
+            speedDebuffRemaining: 0,
+            originalMoveSpeed: tpl.moveSpeed,
+            isImmune: false,
+            damageReduction: 0,
+            damageReductionRemaining: 0,
+            speedBuffRemaining: 0,
+            speedBuffPercent: 0,
+            cdIncreaseLayers: 0,
+            extraCdMax: 0,
+            tempDamageBonus: 0,
+            tempDamageRemaining: 0,
+            isLocking: false,
+            lockingRemaining: 0,
+            isLaserActive: false,
+            isReflecting: false,
+            reflectRemaining: 0,
+            reflectTimer: 0,
+            tempBlock: 0,
+            tempBlockRemaining: 0
+        };
+        if(weaponId==='slime' && splitLevel < unit.maxSplitLevel) unit.canSplit = true;
+        else unit.canSplit = false;
+        return unit;
+    }
+    function getActualSkillCdMax(unit){ return unit.skillCdMax + (unit.extraCdMax || 0); }
+
+    function applyDamage(target, damage){
+        let totalBlock = (target.block || 0) + (target.tempBlock || 0);
+        if(totalBlock > 0 && damage > 0){
+            let blocked = Math.min(totalBlock, damage);
+            if(blocked > 0){
+                let tempBlockUsed = Math.min(target.tempBlock || 0, blocked);
+                if(tempBlockUsed > 0){ target.tempBlock -= tempBlockUsed; blocked -= tempBlockUsed; }
+                if(blocked > 0 && target.block > 0){
+                    let permBlockUsed = Math.min(target.block, blocked);
+                    target.block -= permBlockUsed;
+                    blocked -= permBlockUsed;
+                }
+                damage -= (totalBlock - ((target.block||0)+(target.tempBlock||0)));
+                showFloatingText(target.x, target.y-20, `🛡️格挡 ${totalBlock - ((target.block||0)+(target.tempBlock||0))}`, "#aaffff");
+            }
+        }
+        let shieldInfo = activeShields.get(target.id);
+        if(shieldInfo && shieldInfo.shield>0){
+            let absorbed = Math.min(shieldInfo.shield, damage);
+            shieldInfo.shield -= absorbed;
+            damage -= absorbed;
+            showFloatingText(target.x, target.y-20, `🛡️护盾吸收 ${absorbed}`, "#aaffff");
+            if(shieldInfo.shield <= 0) activeShields.delete(target.id);
+        }
+        if(damage <= 0) return;
+        if(target.damageReductionRemaining>0 && target.damageReduction>0){
+            let reduced = Math.floor(damage * target.damageReduction / 100);
+            damage -= reduced;
+            showFloatingText(target.x, target.y-20, `🛡️减伤 ${reduced} (${target.damageReduction}%)`, "#ffaa88");
+        }
+        if(damage > 0){
+            target.hp = Math.max(0, target.hp - damage);
+            showFloatingText(target.x, target.y-12, `-${damage}`, "#ffaa66");
+            playSound('hit');
+        }
+        target.hitFlash = 8;
+    }
+
+    function handleBoundary(unit){
+        let m = unit.radius;
+        if(unit.x - m <= 0){ unit.x = m; unit.vx = -unit.vx; }
+        if(unit.x + m >= W){ unit.x = W - m; unit.vx = -unit.vx; }
+        if(unit.y - m <= 0){ unit.y = m; unit.vy = -unit.vy; }
+        if(unit.y + m >= H){ unit.y = H - m; unit.vy = -unit.vy; }
+    }
+    function randomizeMovement(unit){
+        if(unit.stunRemaining>0) return;
+        if(unit.isLaserActive) return;
+        let speedFactor = (unit.speedDebuffRemaining>0 && !unit.isImmune) ? 0.4 : 1.0;
+        if(unit.speedBuffRemaining>0) speedFactor *= (1+unit.speedBuffPercent/100);
+        if(Math.random()<0.02){
+            unit.vx += (Math.random()-0.5)*1.2;
+            unit.vy += (Math.random()-0.5)*1.2;
+            let maxSpeed = (unit.moveSpeed+0.8)*speedFactor;
+            if(Math.abs(unit.vx) > maxSpeed) unit.vx = unit.vx>0 ? maxSpeed : -maxSpeed;
+            if(Math.abs(unit.vy) > maxSpeed) unit.vy = unit.vy>0 ? maxSpeed : -maxSpeed;
+            if(Math.abs(unit.vx)<0.6 && Math.abs(unit.vy)<0.6){
+                unit.vx += (Math.random()-0.5)*1.2;
+                unit.vy += (Math.random()-0.5)*1.2;
+            }
+        }
+    }
+    function updateMovement(){
+        for(let u of units){
+            if(u.isLaserActive) continue;
+            if(u.stunRemaining<=0 || u.isImmune){
+                let speedFactor = (u.speedDebuffRemaining>0 && !u.isImmune) ? 0.4 : 1.0;
+                if(u.speedBuffRemaining>0) speedFactor *= (1+u.speedBuffPercent/100);
+                u.x += u.vx * speedFactor;
+                u.y += u.vy * speedFactor;
+                handleBoundary(u);
+                randomizeMovement(u);
+            }
+        }
+    }
+    function getNearestEnemy(unit){
+        let nearest = null, minDist = Infinity;
+        for(let other of units){
+            if(other.side === unit.side) continue;
+            let dx = other.x - unit.x, dy = other.y - unit.y;
+            let dist = Math.hypot(dx,dy);
+            if(dist < minDist){ minDist = dist; nearest = other; }
+        }
+        return nearest;
+    }
+
+    function tryRangedAttack(attacker, defender){
+        if(!attacker.isRanged) return false;
+        if(attacker.attackCd>0) return false;
+        if(attacker.stunRemaining>0 && !attacker.isImmune) return false;
+        if(attacker.disableAttackRemaining>0 && !attacker.isImmune) return false;
+        if(attacker.isLocking) return false;
+        let dx = defender.x - attacker.x, dy = defender.y - attacker.y;
+        let dist = Math.hypot(dx,dy);
+        if(dist > attacker.range) return false;
+        let isEmpowered = attacker.nextAttackEmpowered;
+        if(isEmpowered) attacker.nextAttackEmpowered = false;
+        let damage = isEmpowered ? (attacker.empoweredDamage||250) : attacker.baseDamage;
+        let angle = Math.atan2(dy,dx);
+        let speed = attacker.projectileSpeed || 7.0;
+        let vx = Math.cos(angle)*speed, vy = Math.sin(angle)*speed;
+        projectiles.push({x:attacker.x,y:attacker.y,vx,vy,radius:6,damage:damage,ownerSide:attacker.side,type:"arrow",explosive:isEmpowered,canBounce:false});
+        showFloatingText(attacker.x,attacker.y-15,isEmpowered?"💥 爆炸箭! "+damage:"🏹 箭矢 "+damage,"#aaffaa");
+        attacker.attackCd=attacker.attackCdMax; return false;
+    }
+    function tryMeleeAttack(attacker, defender){
+        if(attacker.isRanged) return false;
+        if(!attacker.canAttack) return false;
+        if(attacker.attackCd>0) return false;
+        if(attacker.stunRemaining>0 && !attacker.isImmune) return false;
+        if(attacker.disableAttackRemaining>0 && !attacker.isImmune) return false;
+        if(attacker.isLocking) return false;
+        let dx=attacker.x-defender.x, dy=attacker.y-defender.y, dist=Math.hypot(dx,dy);
+        let attackRange=attacker.radius+defender.radius+7;
+        if(dist>attackRange) return false;
+        let damage = getDamage(attacker);
+        if(attacker.weaponType === 'block'){
+            let silence = silenceEffects.get(defender.id);
+            if(silence && silence.fromWeaponId === attacker.id){
+                let extra = 80;
+                applyDamage(defender, extra);
+                showFloatingText(defender.x, defender.y-20, "🔇 沉默联动 +80", "#cc88ff");
+                silence.remaining = Math.min(silence.remaining+60, 180);
+                silenceEffects.set(defender.id, silence);
+            }
+        }
+        applyDamage(defender, damage);
+        attacker.attackCd = attacker.attackCdMax;
+        playSound('attack');
+        return true;
+    }
+
+    // 技能函数
+    function castDiamondEmpower(attacker){
+        attacker.tempDamageBonus = 100;
+        attacker.tempDamageRemaining = 300;
+        attacker.damageReduction = 90;
+        attacker.damageReductionRemaining = 108;
+        applyApproachBoost(attacker);
+        showFloatingText(attacker.x, attacker.y-25, `💪 临时+100攻(5s) 减伤90%1.8秒 → 总攻${getDamage(attacker)}`, "#aaffdd");
+        playSound('skill');
+    }
+    function castSlimeDebuff(attacker,target){
+        let dx = target.x-attacker.x, dy = target.y-attacker.y, len = Math.hypot(dx,dy);
+        if(len<0.1) len=1;
+        let vx = (dx/len)*6.0, vy = (dy/len)*6.0;
+        projectiles.push({x:attacker.x,y:attacker.y,vx,vy,radius:8,damage:0,ownerSide:attacker.side,type:"slime_debuff",duration:72,slowPercent:60,canBounce:false});
+        showFloatingText(attacker.x,attacker.y-18,"💚 粘液球! 禁攻1.2s+减速60%","#a0e07a");
+        playSound('skill');
+    }
+    function castGoldProjectile(attacker,target){
+        let dx = target.x-attacker.x, dy = target.y-attacker.y, len = Math.hypot(dx,dy);
+        if(len<0.1) len=1;
+        let vx = (dx/len)*6.5, vy = (dy/len)*6.5;
+        projectiles.push({x:attacker.x,y:attacker.y,vx,vy,radius:9,damage:120,ownerSide:attacker.side,type:"gold_bounce",canBounce:true});
+        showFloatingText(attacker.x,attacker.y-20,"✨ 金锭投射! (120 可反弹)","#ffcc66");
+        playSound('skill');
+    }
+    function castAxeCharge(attacker,target){
+        if(attacker.isCharging) return;
+        attacker.stunRemaining=0; attacker.disableAttackRemaining=0; attacker.speedDebuffRemaining=0;
+        attacker.isImmune=true; attacker.damageReduction=80; attacker.damageReductionRemaining=28;
+        let dx=target.x-attacker.x, dy=target.y-attacker.y, len=Math.hypot(dx,dy);
+        if(len<0.1) len=1;
+        let dirX=dx/len, dirY=dy/len;
+        attacker.isCharging=true; attacker.chargeRemaining=28; attacker.chargeDirX=dirX; attacker.chargeDirY=dirY;
+        attacker.originalVx=attacker.vx; attacker.originalVy=attacker.vy;
+        attacker.vx=dirX*18; attacker.vy=dirY*18;
+        showFloatingText(attacker.x,attacker.y-25,"⚡ 雷霆冲撞! (免控+80%减伤)","#ffaa55");
+        playSound('skill');
+    }
+    function castCrossbowEmpower(attacker){
+        attacker.nextAttackEmpowered=true;
+        showFloatingText(attacker.x,attacker.y-20,"🔥 装填爆炸箭! (250)","#ff8844");
+        playSound('skill');
+    }
+    function castBlockRune(attacker,target){
+        let dx=target.x-attacker.x, dy=target.y-attacker.y, len=Math.hypot(dx,dy);
+        if(len<0.1) len=1;
+        let vx=(dx/len)*7.0, vy=(dy/len)*7.0;
+        projectiles.push({x:attacker.x,y:attacker.y,vx,vy,radius:10,damage:50,ownerSide:attacker.side,type:"block_rune",canBounce:false,silenceDuration:90,slowPercent:30,fromWeaponId:attacker.id});
+        showFloatingText(attacker.x,attacker.y-20,"🔇 禁魔符文! (沉默1.5s+重置CD+永久+2sCD/或自增益)","#cc88ff");
+        playSound('skill');
+    }
+    function castShieldSkill(attacker){
+        attacker.tempBlock = (attacker.tempBlock || 0) + 20;
+        attacker.tempBlockRemaining = 300;
+        showFloatingText(attacker.x, attacker.y-25, `🛡️ 格挡+20 (总${(attacker.block||0)+(attacker.tempBlock||0)})`, "#aaffff");
+        playSound('skill');
+    }
+    function tryStartEnergyLock(attacker){
+        if(attacker.skillCd > 0) return false;
+        if(attacker.stunRemaining > 0 && !attacker.isImmune) return false;
+        if(attacker.isLocking || attacker.isLaserActive) return false;
+        let enemy = getNearestEnemy(attacker);
+        if(!enemy) return false;
+        attacker.isLocking = true;
+        attacker.lockingRemaining = 90;
+        showFloatingText(attacker.x, attacker.y-25, "🔒 锁定敌人... 1.5秒", "#ffaa88");
+        playSound('skill');
+        return true;
+    }
+    function updateEnergyLock(attacker){
+        if(!attacker.isLocking) return;
+        attacker.lockingRemaining--;
+        if(attacker.lockingRemaining <= 0){
+            attacker.isLocking = false;
+            let target = getNearestEnemy(attacker);
+            if(target) startEnergyLaser(attacker, target);
+            else {
+                attacker.skillCd = getActualSkillCdMax(attacker);
+                showFloatingText(attacker.x, attacker.y-20, "❌ 锁定失败，无目标", "#ff8888");
+            }
+        }
+    }
+    function startEnergyLaser(attacker, target){
+        if(activeLasers.has(attacker.id)){
+            let ex = activeLasers.get(attacker.id);
+            if(ex.willGrantShield) applyShieldAndBoost(attacker, 300, 360);
+            activeLasers.delete(attacker.id);
+        }
+        attacker.isLaserActive = true;
+        activeLasers.set(attacker.id, {remainingFrames:150, damagePerFrame:2, target:target, willGrantShield:true});
+        showFloatingText(attacker.x, attacker.y-25, "⚡ 激光发射! 每帧2伤，2.5秒", "#ff99cc");
+    }
+    function updateEnergyLaser(unit){
+        let laser = activeLasers.get(unit.id);
+        if(!laser) return;
+        laser.remainingFrames--;
+        if(laser.remainingFrames <= 0){
+            if(laser.willGrantShield) applyShieldAndBoost(unit, 300, 360);
+            activeLasers.delete(unit.id);
+            unit.isLaserActive = false;
+            unit.skillCd = getActualSkillCdMax(unit);
+            showFloatingText(unit.x, unit.y-20, "⚡ 激光结束，进入冷却", "#ccffcc");
+        } else {
+            let target = laser.target;
+            if(!target || target.hp <= 0 || target.side === unit.side){
+                let newTarget = getNearestEnemy(unit);
+                if(newTarget && newTarget.hp > 0){
+                    laser.target = newTarget;
+                    target = newTarget;
+                } else {
+                    if(laser.willGrantShield) applyShieldAndBoost(unit, 300, 360);
+                    activeLasers.delete(unit.id);
+                    unit.isLaserActive = false;
+                    unit.skillCd = getActualSkillCdMax(unit);
+                    showFloatingText(unit.x, unit.y-20, "⚡ 激光中断，无目标", "#ff8888");
+                    return;
+                }
+            }
+            if(target.hp > 0) applyDamage(target, laser.damagePerFrame);
+        }
+    }
+    function updateShieldReflect(unit){
+        if(unit.weaponType !== 'shield') return;
+        if(unit.reflectTimer === undefined) unit.reflectTimer = 0;
+        unit.reflectTimer--;
+        if(unit.reflectTimer <= 0){
+            unit.isReflecting = true;
+            unit.reflectRemaining = 180;
+            unit.reflectTimer = 240;
+            showFloatingText(unit.x, unit.y-20, "🛡️ 反射状态激活 (3秒)", "#88ccff");
+        }
+        if(unit.isReflecting){
+            unit.reflectRemaining--;
+            if(unit.reflectRemaining <= 0){
+                unit.isReflecting = false;
+                showFloatingText(unit.x, unit.y-20, "🛡️ 反射状态结束", "#88ccff");
+            }
+        }
+    }
+    function tryCastSkill(unit, enemy){
+        if(unit.weaponType === 'energy'){ tryStartEnergyLock(unit); return; }
+        if(unit.skillCd > 0) return;
+        if(unit.stunRemaining > 0 && !unit.isImmune) return;
+        if(!enemy) return;
+        if(unit.weaponType === 'gold') castGoldProjectile(unit, enemy);
+        else if(unit.weaponType === 'diamond') castDiamondEmpower(unit);
+        else if(unit.weaponType === 'axe') castAxeCharge(unit, enemy);
+        else if(unit.weaponType === 'crossbow') castCrossbowEmpower(unit);
+        else if(unit.weaponType === 'slime') castSlimeDebuff(unit, enemy);
+        else if(unit.weaponType === 'block') castBlockRune(unit, enemy);
+        else if(unit.weaponType === 'shield') castShieldSkill(unit);
+        if(unit.weaponType !== 'energy') unit.skillCd = getActualSkillCdMax(unit);
+    }
+    function updateCharge(attacker,target){
+        if(!attacker.isCharging) return;
+        attacker.chargeRemaining--;
+        if(attacker.chargeRemaining<=0){
+            attacker.isCharging=false; attacker.vx=attacker.originalVx; attacker.vy=attacker.originalVy;
+            attacker.isImmune=false; attacker.damageReduction=0; attacker.damageReductionRemaining=0;
+            return;
+        }
+        let dx=attacker.x-target.x, dy=attacker.y-target.y, dist=Math.hypot(dx,dy);
+        if(dist<attacker.radius+target.radius){
+            applyDamage(target,490); target.stunRemaining=120;
+            showFloatingText(target.x,target.y-25,"💢 冲撞 490! 眩晕","#ff6666");
+            attacker.isCharging=false; attacker.vx=attacker.originalVx; attacker.vy=attacker.originalVy;
+            attacker.isImmune=false; attacker.damageReduction=0; attacker.damageReductionRemaining=0;
+        }
+    }
+    function updateCooldownsAndSkills(){
+        for(let u of units){
+            if(u.attackCd>0) u.attackCd--;
+            if(u.skillCd>0 && !u.isLaserActive) u.skillCd--;
+            if(u.hitFlash>0) u.hitFlash--;
+            if(!u.isImmune){
+                if(u.stunRemaining>0) u.stunRemaining--;
+                if(u.disableAttackRemaining>0) u.disableAttackRemaining--;
+                if(u.speedDebuffRemaining>0) u.speedDebuffRemaining--;
+            }
+            if(u.damageReductionRemaining>0){ u.damageReductionRemaining--; if(u.damageReductionRemaining<=0) u.damageReduction=0; }
+            if(u.speedBuffRemaining>0){ u.speedBuffRemaining--; if(u.speedBuffRemaining<=0) u.speedBuffPercent=0; }
+            if(u.tempDamageRemaining>0){ u.tempDamageRemaining--; if(u.tempDamageRemaining<=0) u.tempDamageBonus=0; }
+            if(u.tempBlockRemaining>0){ u.tempBlockRemaining--; if(u.tempBlockRemaining<=0) u.tempBlock=0; }
+            if(u.weaponType === 'shield') updateShieldReflect(u);
+            if(u.weaponType === 'energy'){
+                if(u.isLocking) updateEnergyLock(u);
+                if(u.isLaserActive) updateEnergyLaser(u);
+            }
+        }
+        for(let [id,silence] of silenceEffects.entries()){ silence.remaining--; if(silence.remaining<=0) silenceEffects.delete(id); }
+        for(let u of units){ let enemy=getNearestEnemy(u); if(enemy) tryCastSkill(u,enemy); }
+        for(let u of units){ if(u.isCharging){ let enemy=getNearestEnemy(u); if(enemy) updateCharge(u,enemy); } }
+    }
+    function battleTick(){
+        for(let a of units){ if(a.hp<=0) continue; let d=getNearestEnemy(a); if(!d) continue; if(!a.isRanged) tryMeleeAttack(a,d); else tryRangedAttack(a,d); }
+    }
+    function updateProjectiles(){
+        for(let i=0;i<projectiles.length;i++){
+            let p=projectiles[i];
+            p.x+=p.vx; p.y+=p.vy;
+            let bounced=false;
+            if(p.x-p.radius<0){ if(p.canBounce){ p.x=p.radius; p.vx=-p.vx; bounced=true; } else { projectiles.splice(i,1); i--; continue; } }
+            if(p.x+p.radius>W){ if(p.canBounce){ p.x=W-p.radius; p.vx=-p.vx; bounced=true; } else { projectiles.splice(i,1); i--; continue; } }
+            if(p.y-p.radius<0){ if(p.canBounce){ p.y=p.radius; p.vy=-p.vy; bounced=true; } else { projectiles.splice(i,1); i--; continue; } }
+            if(p.y+p.radius>H){ if(p.canBounce){ p.y=H-p.radius; p.vy=-p.vy; bounced=true; } else { projectiles.splice(i,1); i--; continue; } }
+            if(bounced && p.type==="gold_bounce") showFloatingText(p.x,p.y,"💥 反弹","#ffcc88");
+            let hitIndex=-1;
+            for(let j=0;j<units.length;j++){ let t=units[j]; if(t.side===p.ownerSide) continue; let dx=p.x-t.x, dy=p.y-t.y; if(Math.hypot(dx,dy)<p.radius+t.radius){ hitIndex=j; break; } }
+            if(hitIndex!==-1){
+                let target=units[hitIndex];
+                if(target.weaponType === 'shield' && target.isReflecting && p.ownerSide !== target.side){
+                    let attacker = units.find(u=>u.side === p.ownerSide);
+                    if(attacker) applyDamage(attacker, 30);
+                    let newVx = -p.vx, newVy = -p.vy;
+                    let reflected = { x:target.x, y:target.y, vx:newVx, vy:newVy, radius:p.radius, damage:p.damage, ownerSide:target.side, type:p.type, explosive:p.explosive||false, canBounce:p.canBounce||false, duration:p.duration, slowPercent:p.slowPercent, silenceDuration:p.silenceDuration, fromWeaponId:p.fromWeaponId };
+                    projectiles.push(reflected);
+                    showFloatingText(target.x, target.y-15, "🔄 反弹!", "#88ccff");
+                    projectiles.splice(i,1); i--;
+                    continue;
+                }
+                if(p.type==="slime_debuff"){
+                    if(!target.isImmune){ target.disableAttackRemaining=p.duration; target.speedDebuffRemaining=p.duration; showFloatingText(target.x,target.y-15,`💚 粘液! 禁攻+减速${p.slowPercent}%`,"#ffaa88"); }
+                    else showFloatingText(target.x,target.y-15,"🛡️ 免疫控制","#aaaaff");
+                    projectiles.splice(i,1); i--;
+                } else if(p.type==="block_rune"){
+                    if(!target.isImmune && !(target.weaponType==='axe' && target.isCharging)){
+                        interruptOngoingSkills(target); resetSkillCd(target);
+                        silenceEffects.set(target.id,{ remaining:p.silenceDuration, fromWeaponId:p.fromWeaponId });
+                        target.speedDebuffRemaining=Math.max(target.speedDebuffRemaining||0, p.silenceDuration);
+                        showFloatingText(target.x,target.y-15,"🔇 沉默! 禁用技能+重置CD+减速","#cc88ff");
+                        let caster=units.find(u=>u.id===p.fromWeaponId);
+                        if(caster) tryAddPermanentCdIncrease(target, caster);
+                    } else if(target.weaponType==='axe' && target.isCharging) showFloatingText(target.x,target.y-15,"🪓 冲刺免疫沉默","#ffaa88");
+                    else showFloatingText(target.x,target.y-15,"🛡️ 免疫控制","#aaaaff");
+                    applyDamage(target, p.damage);
+                    projectiles.splice(i,1); i--;
+                } else {
+                    applyDamage(target, p.damage);
+                    projectiles.splice(i,1); i--;
+                }
+            }
+        }
+    }
+    function updateShields(){
+        for(let [id,shield] of activeShields.entries()){ shield.remainingFrames--; if(shield.remainingFrames<=0 || shield.shield<=0) activeShields.delete(id); }
+    }
+    function handleDeaths(){
+        let newUnits=[];
+        for(let u of units){
+            if(u.hp>0){ newUnits.push(u); continue; }
+            if(activeLasers.has(u.id)) activeLasers.delete(u.id);
+            if(activeShields.has(u.id)) activeShields.delete(u.id);
+            if(silenceEffects.has(u.id)) silenceEffects.delete(u.id);
+            if(extendedCdSet.has(u.id)) extendedCdSet.delete(u.id);
+            if(u.weaponType==='slime' && u.canSplit && u.splitLevel<u.maxSplitLevel){
+                let newLevel=u.splitLevel+1;
+                for(let i=0;i<2;i++){
+                    let offX=(Math.random()-0.5)*40, offY=(Math.random()-0.5)*40;
+                    let nx=u.x+offX, ny=u.y+offY;
+                    nx=Math.min(W-15,Math.max(15,nx)); ny=Math.min(H-15,Math.max(15,ny));
+                    let child=createUnit('slime',u.side,nx,ny,(Math.random()-0.5)*2,(Math.random()-0.5)*2,newLevel,u.bonusDamage,u.block);
+                    if(child) newUnits.push(child);
+                }
+                showFloatingText(u.x,u.y,"💚 分裂！","#8bcc6e");
+            }
+            playSound('die');
+        }
+        units=newUnits;
+    }
+    function checkVictory(){
+        let left=units.some(u=>u.side==='left'), right=units.some(u=>u.side==='right');
+        if(!left && !right) return false;
+        if(!left){ gameOver=true; winnerSide='right'; document.getElementById('victoryMsg').innerText="🏆 右侧阵营 胜利！ 🏆"; document.getElementById('victoryMsg').style.display="block"; return true; }
+        if(!right){ gameOver=true; winnerSide='left'; document.getElementById('victoryMsg').innerText="🏆 左侧阵营 胜利！ 🏆"; document.getElementById('victoryMsg').style.display="block"; return true; }
+        return false;
+    }
+    function rebuildInfoPanel(){
+        const panel=document.getElementById('infoPanel');
+        let leftUnits=units.filter(u=>u.side==='left'), rightUnits=units.filter(u=>u.side==='right');
+        let leftHtml=`<div class="team-column"><div class="team-title">⚔️ 左侧阵营 ⚔️</div>`;
+        for(let u of leftUnits){
+            let card=WEAPON_TEMPLATES[u.weaponType].colorClass, nameColor=u.weaponType+"-name", hpPercent=(u.hp/u.maxHp)*100;
+            let skillName=WEAPON_TEMPLATES[u.weaponType].skillName;
+            let skillCdText=(u.skillCd===0)?"✅ 就绪":`⏳ ${Math.ceil(u.skillCd/60)}s`;
+            if(u.isLocking) skillCdText=`🔒 锁定 ${Math.ceil(u.lockingRemaining/60)}s`;
+            if(u.isLaserActive) skillCdText=`⚡ 激光中`;
+            if(u.stunRemaining>0) skillCdText=`😵 眩晕 ${Math.ceil(u.stunRemaining/60)}s`;
+            let attackCdText=(u.canAttack && u.attackCd>0)?`⏳ ${Math.ceil(u.attackCd/60)}s`:(u.canAttack?"✅ 可攻击":"❌ 无普攻");
+            if(u.disableAttackRemaining>0) attackCdText=`🔒 禁攻 ${Math.ceil(u.disableAttackRemaining/60)}s`;
+            let silence=silenceEffects.get(u.id); if(silence) attackCdText+=` 🔇沉默${Math.ceil(silence.remaining/60)}s`;
+            let damageText=u.canAttack?(u.isRanged?`${u.baseDamage} (远程)`:getDamage(u)):"⚡ 仅技能";
+            if(u.tempDamageBonus && u.tempDamageRemaining>0) damageText+=` +${u.tempDamageBonus}⚡(临时)`;
+            if(u.weaponType==='diamond') damageText+=` 🛡️减伤${u.damageReduction}%`+(u.damageReductionRemaining>0?` ${Math.ceil(u.damageReductionRemaining/60)}s`:"");
+            if(u.weaponType==='axe' && u.damageReduction>0) damageText+=` 🔰减伤${u.damageReduction}%`;
+            let shield=activeShields.get(u.id); if(shield && shield.shield>0) damageText+=` 🛡️护盾${shield.shield}`;
+            let cdIncrease = u.extraCdMax || 0; if(cdIncrease>0) damageText+=` ⏫CD+${cdIncrease/60}s`;
+            let blockValue = (u.block||0)+(u.tempBlock||0); if(blockValue>0) damageText+=` 🛡️格挡${blockValue}`;
+            let sizeLabel="";
+            if(u.weaponType==='slime'){ if(u.splitLevel===0) sizeLabel="🟢大"; else if(u.splitLevel===1) sizeLabel="🟢中"; else if(u.splitLevel===2) sizeLabel="🟢小"; }
+            leftHtml+=`<div class="fighter-card ${card}"><div class="fighter-name ${nameColor}">${sizeLabel||(u.weaponType==='energy'?'⚡':(u.weaponType==='block'?'🔇':(u.weaponType==='shield'?'🛡️':'⚔️')))} ${WEAPON_TEMPLATES[u.weaponType].name}</div><div class="hp-bar-bg"><div class="hp-fill ${u.weaponType}-hp" style="width:${hpPercent}%"></div></div><div class="skill-info"><span>✨ ${skillName}</span><span class="skill-cooldown">${skillCdText}</span></div><div class="attack-info"><span>⚔️ 普攻冷却</span><span class="attack-cooldown">${attackCdText}</span></div><div class="attack-damage">⚔️ 伤害: ${damageText}</div><div><button class="upload-btn" data-weapon="${u.weaponType}">🖼️ 换贴图</button><button class="reset-skin-btn" data-weapon="${u.weaponType}">↺ 默认</button></div></div>`;
+        }
+        leftHtml+=`</div>`;
+        let rightHtml=`<div class="team-column"><div class="team-title">⚔️ 右侧阵营 ⚔️</div>`;
+        for(let u of rightUnits){
+            let card=WEAPON_TEMPLATES[u.weaponType].colorClass, nameColor=u.weaponType+"-name", hpPercent=(u.hp/u.maxHp)*100;
+            let skillName=WEAPON_TEMPLATES[u.weaponType].skillName;
+            let skillCdText=(u.skillCd===0)?"✅ 就绪":`⏳ ${Math.ceil(u.skillCd/60)}s`;
+            if(u.isLocking) skillCdText=`🔒 锁定 ${Math.ceil(u.lockingRemaining/60)}s`;
+            if(u.isLaserActive) skillCdText=`⚡ 激光中`;
+            if(u.stunRemaining>0) skillCdText=`😵 眩晕 ${Math.ceil(u.stunRemaining/60)}s`;
+            let attackCdText=(u.canAttack && u.attackCd>0)?`⏳ ${Math.ceil(u.attackCd/60)}s`:(u.canAttack?"✅ 可攻击":"❌ 无普攻");
+            if(u.disableAttackRemaining>0) attackCdText=`🔒 禁攻 ${Math.ceil(u.disableAttackRemaining/60)}s`;
+            let silence=silenceEffects.get(u.id); if(silence) attackCdText+=` 🔇沉默${Math.ceil(silence.remaining/60)}s`;
+            let damageText=u.canAttack?(u.isRanged?`${u.baseDamage} (远程)`:getDamage(u)):"⚡ 仅技能";
+            if(u.tempDamageBonus && u.tempDamageRemaining>0) damageText+=` +${u.tempDamageBonus}⚡(临时)`;
+            if(u.weaponType==='diamond') damageText+=` 🛡️减伤${u.damageReduction}%`+(u.damageReductionRemaining>0?` ${Math.ceil(u.damageReductionRemaining/60)}s`:"");
+            if(u.weaponType==='axe' && u.damageReduction>0) damageText+=` 🔰减伤${u.damageReduction}%`;
+            let shield=activeShields.get(u.id); if(shield && shield.shield>0) damageText+=` 🛡️护盾${shield.shield}`;
+            let cdIncrease = u.extraCdMax || 0; if(cdIncrease>0) damageText+=` ⏫CD+${cdIncrease/60}s`;
+            let blockValue = (u.block||0)+(u.tempBlock||0); if(blockValue>0) damageText+=` 🛡️格挡${blockValue}`;
+            let sizeLabel="";
+            if(u.weaponType==='slime'){ if(u.splitLevel===0) sizeLabel="🟢大"; else if(u.splitLevel===1) sizeLabel="🟢中"; else if(u.splitLevel===2) sizeLabel="🟢小"; }
+            rightHtml+=`<div class="fighter-card ${card}"><div class="fighter-name ${nameColor}">${sizeLabel||(u.weaponType==='energy'?'⚡':(u.weaponType==='block'?'🔇':(u.weaponType==='shield'?'🛡️':'⚔️')))} ${WEAPON_TEMPLATES[u.weaponType].name}</div><div class="hp-bar-bg"><div class="hp-fill ${u.weaponType}-hp" style="width:${hpPercent}%"></div></div><div class="skill-info"><span>✨ ${skillName}</span><span class="skill-cooldown">${skillCdText}</span></div><div class="attack-info"><span>⚔️ 普攻冷却</span><span class="attack-cooldown">${attackCdText}</span></div><div class="attack-damage">⚔️ 伤害: ${damageText}</div><div><button class="upload-btn" data-weapon="${u.weaponType}">🖼️ 换贴图</button><button class="reset-skin-btn" data-weapon="${u.weaponType}">↺ 默认</button></div></div>`;
+        }
+        rightHtml+=`</div>`;
+        panel.innerHTML=leftHtml+rightHtml;
+
+        document.querySelectorAll('.upload-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let weapon = btn.dataset.weapon;
+                let input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e2) => {
+                    let file = e2.target.files[0];
+                    if(file) replaceWeaponSkin(weapon, file);
+                };
+                input.click();
+            });
+        });
+        document.querySelectorAll('.reset-skin-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let weapon = btn.dataset.weapon;
+                let defaultSkin = generateDefaultSkin(weapon, WEAPON_TEMPLATES[weapon].name);
+                weaponImages[weapon] = defaultSkin;
+                let saved = localStorage.getItem(SKIN_STORAGE_KEY);
+                let skinMap = saved ? JSON.parse(saved) : {};
+                delete skinMap[weapon];
+                localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify(skinMap));
+                showFloatingText(400, 400, `${WEAPON_TEMPLATES[weapon].name} 贴图已重置`, "#aaffaa");
+            });
+        });
+    }
+
+    function drawUnit(unit){
+        ctx.save();
+        const dx = unit.x - camX, dy = unit.y - camY;
+        if(unit.hitFlash>0){ ctx.shadowBlur=12; ctx.shadowColor="white"; ctx.globalAlpha=0.9; }
+        if(unit.stunRemaining>0 && !unit.isImmune){ ctx.shadowBlur=8; ctx.shadowColor="#aa88ff"; ctx.globalAlpha=0.7; }
+        if(unit.skillCd===0 && !gameOver && (unit.stunRemaining===0 || unit.isImmune) && !unit.isLocking && !unit.isLaserActive){
+            ctx.beginPath(); ctx.arc(dx, dy, unit.radius+6, 0, Math.PI*2);
+            let fill;
+            if(unit.weaponType==='gold') fill="rgba(255,200,70,0.3)";
+            else if(unit.weaponType==='diamond') fill="rgba(100,200,255,0.3)";
+            else if(unit.weaponType==='axe') fill="rgba(200,120,70,0.3)";
+            else if(unit.weaponType==='crossbow') fill="rgba(140,180,70,0.3)";
+            else if(unit.weaponType==='slime') fill="rgba(100,200,100,0.3)";
+            else if(unit.weaponType==='energy') fill="rgba(255,100,200,0.3)";
+            else if(unit.weaponType==='block') fill="rgba(170,100,255,0.3)";
+            else fill="rgba(100,150,255,0.3)";
+            ctx.fillStyle=fill; ctx.fill();
+        }
+        let img = weaponImages[unit.weaponType];
+        if(img && (img.complete || img.tagName === 'CANVAS')) {
+            ctx.save();
+            ctx.translate(dx, dy);
+            let enemy = getNearestEnemy(unit);
+            let angle = 0;
+            if(enemy) angle = Math.atan2(enemy.y - unit.y, enemy.x - unit.x);
+            ctx.rotate(angle);
+            ctx.drawImage(img, -16, -16, 32, 32);
+            ctx.restore();
+        } else {
+            ctx.beginPath(); ctx.arc(dx, dy, 16, 0, Math.PI*2);
+            ctx.fillStyle = "#aaa"; ctx.fill();
+            ctx.fillStyle = "#000"; ctx.fillText("?", dx-4, dy+4);
+        }
+        if(unit.disableAttackRemaining>0 && !unit.isImmune){ ctx.font="bold 12 monospace"; ctx.fillStyle="#ff8888"; ctx.fillText("🚫", dx-10, dy-18); }
+        if(silenceEffects.has(unit.id) && !unit.isImmune){ ctx.font="bold 12 monospace"; ctx.fillStyle="#cc88ff"; ctx.fillText("🔇", dx+8, dy-18); }
+        if(unit.isImmune){ ctx.font="bold 14 monospace"; ctx.fillStyle="#ffaa88"; ctx.fillText("🛡️", dx-12, dy-20); }
+        if(unit.damageReductionRemaining>0 && unit.damageReduction>0){ ctx.font="bold 10 monospace"; ctx.fillStyle="#aaffaa"; ctx.fillText(`${unit.damageReduction}%`, dx+12, dy-15); }
+        if(unit.isReflecting){ ctx.font="bold 10 monospace"; ctx.fillStyle="#ffff88"; ctx.fillText("反射", dx+10, dy-5); }
+        drawUnitBars(unit, dx, dy);
+        ctx.restore();
+    }
+    function drawUnitBars(unit, dx, dy){
+        const barWidth = unit.radius * 1.5;
+        const barHeight = 4;
+        const spacing = 2;
+        let yOffset = -unit.radius - 6;
+        let hpPercent = unit.hp / unit.maxHp;
+        ctx.fillStyle = "#4a2a2a";
+        ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth, barHeight);
+        ctx.fillStyle = "#ff4444";
+        ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth * hpPercent, barHeight);
+        yOffset -= (barHeight + spacing);
+        let skillTotal = getActualSkillCdMax(unit);
+        let skillPercent = 1 - (unit.skillCd / skillTotal);
+        if(skillTotal > 0 && unit.skillCd > 0 && !unit.isLocking && !unit.isLaserActive){
+            ctx.fillStyle = "#3a2a3a";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth, barHeight);
+            ctx.fillStyle = "#aa66ff";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth * skillPercent, barHeight);
+            yOffset -= (barHeight + spacing);
+        }
+        if(unit.isLocking){
+            let lockPercent = 1 - (unit.lockingRemaining / 90);
+            ctx.fillStyle = "#3a2a3a";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth, barHeight);
+            ctx.fillStyle = "#ffaa44";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth * lockPercent, barHeight);
+            yOffset -= (barHeight + spacing);
+        }
+        let shieldInfo = activeShields.get(unit.id);
+        if(shieldInfo && shieldInfo.shield > 0){
+            let shieldPercent = shieldInfo.shield / 300;
+            ctx.fillStyle = "#2a2a4a";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth, barHeight);
+            ctx.fillStyle = "#4488ff";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth * Math.min(shieldPercent,1), barHeight);
+            yOffset -= (barHeight + spacing);
+        }
+        let blockValue = (unit.block||0) + (unit.tempBlock||0);
+        if(blockValue > 0){
+            let blockPercent = Math.min(blockValue / 100, 1);
+            ctx.fillStyle = "#2a2a2a";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth, barHeight);
+            ctx.fillStyle = "#88aaff";
+            ctx.fillRect(dx - barWidth/2, dy + yOffset, barWidth * blockPercent, barHeight);
+        }
+    }
+    function drawBackground(){
+        ctx.fillStyle = "#2b5a2e";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#a67c52";
+        ctx.lineWidth = 1;
+        const step = 40;
+        for(let i=0; i<W+step; i+=step){
+            ctx.beginPath(); ctx.moveTo(i - camX, 0); ctx.lineTo(i - camX, H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i - camY); ctx.lineTo(W, i - camY); ctx.stroke();
+        }
+    }
+    function drawShields(){
+        for(let [id,shield] of activeShields.entries()){
+            let u = units.find(u=>u.id==id);
+            if(!u || shield.shield<=0) continue;
+            let dx = u.x - camX, dy = u.y - camY;
+            ctx.save(); ctx.beginPath(); ctx.arc(dx,dy,u.radius+4,0,Math.PI*2); ctx.strokeStyle="#4488ff"; ctx.lineWidth=3; ctx.setLineDash([5,8]); ctx.stroke(); ctx.beginPath(); ctx.arc(dx,dy,u.radius+2,0,Math.PI*2); ctx.strokeStyle="#88aaff"; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+        }
+        ctx.setLineDash([]);
+    }
+    function drawLasers(){
+        for(let [id,laser] of activeLasers.entries()){
+            let caster=units.find(u=>u.id==id); if(!caster) continue;
+            let target=laser.target; if(!target || target.hp<=0) continue;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(caster.x-camX, caster.y-camY); ctx.lineTo(target.x-camX, target.y-camY); ctx.strokeStyle="#ff8844"; ctx.lineWidth=4; ctx.shadowBlur=8; ctx.shadowColor="#ff8844"; ctx.stroke(); ctx.beginPath(); ctx.moveTo(caster.x-camX, caster.y-camY); ctx.lineTo(target.x-camX, target.y-camY); ctx.strokeStyle="#ffffff"; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+        }
+    }
+    function drawProjectiles(){
+        for(let p of projectiles){
+            ctx.save(); ctx.shadowBlur=6;
+            let px=p.x-camX, py=p.y-camY;
+            if(p.type==="arrow"){ ctx.fillStyle=p.explosive?"#ff8844":"#c0c080"; ctx.beginPath(); ctx.ellipse(px,py,5,3,Math.atan2(p.vy,p.vx),0,Math.PI*2); ctx.fill(); if(p.explosive){ ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2); ctx.fillStyle="#ff884488"; ctx.fill(); } }
+            else if(p.type==="gold_bounce"){ ctx.fillStyle="#f5cb42"; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#ffaa33"; ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#ffdd88"; ctx.font="bold 12 monospace"; ctx.fillText("🪙", px-6, py+4); }
+            else if(p.type==="slime_debuff"){ ctx.fillStyle="#8bcc6e"; ctx.beginPath(); ctx.arc(px,py,7,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#6a9e4a"; ctx.beginPath(); ctx.ellipse(px-2,py-2,2,1.5,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#ffffff"; ctx.font="bold 14 monospace"; ctx.fillText("💢", px-4, py+4); }
+            else if(p.type==="block_rune"){ ctx.fillStyle="#aa66ff"; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#cc99ff"; ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#ffffff"; ctx.font="bold 14 monospace"; ctx.fillText("🔇", px-5, py+4); }
+            ctx.restore();
+        }
+    }
+    function drawFloats(){
+        for(let t of floatingTexts){
+            ctx.font="bold 18 monospace"; ctx.shadowBlur=4; ctx.fillStyle=t.color;
+            ctx.fillText(t.text, t.x-camX-12, t.y-camY-8);
+        }
+    }
+    function drawFocusCanvas(){
+        if(!focusUnit || focusUnit.hp <= 0 || gameOver){
+            focusContainer.style.display = 'none';
+            focusUnit = null;
+            return;
+        }
+        let left = focusUnit.x - FOCUS_SIZE/2;
+        let top = focusUnit.y - FOCUS_SIZE/2;
+        left = Math.min(Math.max(left, 0), W - FOCUS_SIZE);
+        top = Math.min(Math.max(top, 0), H - FOCUS_SIZE);
+        if(W <= FOCUS_SIZE) left = 0;
+        if(H <= FOCUS_SIZE) top = 0;
+        focusCtx.clearRect(0, 0, FOCUS_SIZE, FOCUS_SIZE);
+        focusCtx.fillStyle = "#2b5a2e";
+        focusCtx.fillRect(0, 0, FOCUS_SIZE, FOCUS_SIZE);
+        focusCtx.strokeStyle = "#a67c52";
+        focusCtx.lineWidth = 1;
+        const step = 20;
+        for(let i=0; i<W+step; i+=step){
+            focusCtx.beginPath(); focusCtx.moveTo(i-left, 0); focusCtx.lineTo(i-left, FOCUS_SIZE); focusCtx.stroke();
+            focusCtx.beginPath(); focusCtx.moveTo(0, i-top); focusCtx.lineTo(FOCUS_SIZE, i-top); focusCtx.stroke();
+        }
+        for(let i=0;i<units.length;i++) for(let j=i+1;j<units.length;j++) if(units[i].side!==units[j].side){
+            let u1x=units[i].x-left, u1y=units[i].y-top, u2x=units[j].x-left, u2y=units[j].y-top;
+            if(u1x>=0 && u1x<=FOCUS_SIZE && u1y>=0 && u1y<=FOCUS_SIZE && u2x>=0 && u2x<=FOCUS_SIZE && u2y>=0 && u2y<=FOCUS_SIZE){
+                focusCtx.beginPath(); focusCtx.moveTo(u1x,u1y); focusCtx.lineTo(u2x,u2y); focusCtx.strokeStyle="#ffe69b88"; focusCtx.lineWidth=1.5; focusCtx.setLineDash([6,8]); focusCtx.stroke();
+            }
+        }
+        focusCtx.setLineDash([]);
+        for(let u of units){
+            let ux = u.x - left, uy = u.y - top;
+            if(ux < -u.radius || ux > FOCUS_SIZE+u.radius || uy < -u.radius || uy > FOCUS_SIZE+u.radius) continue;
+            focusCtx.save();
+            focusCtx.translate(ux, uy);
+            let enemy = getNearestEnemy(u);
+            let angle = 0;
+            if(enemy) angle = Math.atan2(enemy.y-u.y, enemy.x-u.x);
+            focusCtx.rotate(angle);
+            let img = weaponImages[u.weaponType];
+            if(img && (img.complete || img.tagName === 'CANVAS')){
+                focusCtx.drawImage(img, -12, -12, 24, 24);
+            } else {
+                focusCtx.fillStyle = "#aaa";
+                focusCtx.beginPath(); focusCtx.arc(0,0,12,0,Math.PI*2); focusCtx.fill();
+            }
+            focusCtx.restore();
+        }
+        for(let [id,laser] of activeLasers.entries()){
+            let caster=units.find(u=>u.id==id); if(!caster) continue;
+            let target=laser.target; if(!target || target.hp<=0) continue;
+            let cx=caster.x-left, cy=caster.y-top, tx=target.x-left, ty=target.y-top;
+            if(cx>=0 && cx<=FOCUS_SIZE && cy>=0 && cy<=FOCUS_SIZE && tx>=0 && tx<=FOCUS_SIZE && ty>=0 && ty<=FOCUS_SIZE){
+                focusCtx.save(); focusCtx.beginPath(); focusCtx.moveTo(cx,cy); focusCtx.lineTo(tx,ty); focusCtx.strokeStyle="#ff8844"; focusCtx.lineWidth=2; focusCtx.stroke(); focusCtx.restore();
+            }
+        }
+    }
+    function draw(){
+        drawBackground();
+        for(let i=0;i<units.length;i++) for(let j=i+1;j<units.length;j++) if(units[i].side!==units[j].side){
+            ctx.beginPath(); ctx.moveTo(units[i].x-camX, units[i].y-camY); ctx.lineTo(units[j].x-camX, units[j].y-camY); ctx.strokeStyle="#ffe69b88"; ctx.lineWidth=1.5; ctx.setLineDash([6,8]); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        for(let u of units) drawUnit(u);
+        drawShields(); drawLasers(); drawProjectiles(); drawFloats();
+        if(gameOver && winnerSide){
+            ctx.font="bold 26 monospace"; ctx.fillStyle="#FFD966"; ctx.shadowBlur=5;
+            let text=winnerSide==='left'?"左侧阵营 VICTORY":"右侧阵营 VICTORY";
+            ctx.fillText(text, canvas.width/2-120, 65);
+        }
+    }
+    function updateCamera(){
+        if(units.length === 0) return;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for(let u of units){
+            minX = Math.min(minX, u.x - u.radius);
+            maxX = Math.max(maxX, u.x + u.radius);
+            minY = Math.min(minY, u.y - u.radius);
+            maxY = Math.max(maxY, u.y + u.radius);
+        }
+        let targetCamX = (minX + maxX)/2 - canvas.width/2;
+        let targetCamY = (minY + maxY)/2 - canvas.height/2;
+        targetCamX = Math.min(Math.max(targetCamX, 0), W - canvas.width);
+        targetCamY = Math.min(Math.max(targetCamY, 0), H - canvas.height);
+        if(W <= canvas.width) targetCamX = 0;
+        if(H <= canvas.height) targetCamY = 0;
+        camX = targetCamX;
+        camY = targetCamY;
+    }
+    function gameUpdate(){
+        if(gameOver) return;
+        updateMovement();
+        updateCooldownsAndSkills();
+        battleTick();
+        updateProjectiles();
+        updateShields();
+        handleDeaths();
+        updateFloatingTexts();
+        if(checkVictory()) return;
+        rebuildInfoPanel();
+        updateCamera();
+    }
+    function gameLoop(){
+        gameUpdate();
+        draw();
+        drawFocusCanvas();
+        animationId = requestAnimationFrame(gameLoop);
+    }
+    function startFight(wA, wB){
+        if(animationId) cancelAnimationFrame(animationId);
+        gameOver = false;
+        winnerSide = null;
+        floatingTexts = [];
+        projectiles = [];
+        activeLasers.clear();
+        activeShields.clear();
+        silenceEffects.clear();
+        extendedCdSet.clear();
+        units = [];
+        focusUnit = null;
+        focusContainer.style.display = 'none';
+        let left = createUnit(wA, 'left', 200, 400, (Math.random()-0.5)*2.5, (Math.random()-0.5)*2.5, 0);
+        let right = createUnit(wB, 'right', 600, 400, (Math.random()-0.5)*2.5, (Math.random()-0.5)*2.5, 0);
+        units.push(left, right);
+        updateCamera();
+        rebuildInfoPanel();
+        document.getElementById('victoryMsg').style.display = 'none';
+        gameLoop();
+    }
+
+    loadAllSkins();
+    const btns = document.querySelectorAll('.select-btn');
+    let curSel = [...selectedWeapons];
+    btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            let w = btn.dataset.weapon;
+            if(curSel.includes(w)){
+                curSel = curSel.filter(x => x !== w);
+                btn.classList.remove('selected');
+            } else {
+                if(curSel.length < 2){
+                    curSel.push(w);
+                    btn.classList.add('selected');
+                } else {
+                    alert("只能选择两把武器进行单挑！");
+                }
+            }
+        });
+        if(selectedWeapons.includes(btn.dataset.weapon)) btn.classList.add('selected');
+    });
+    document.getElementById('startFightBtn').addEventListener('click', () => {
+        if(curSel.length !== 2){
+            alert("请选择两把武器");
+            return;
+        }
+        selectedWeapons = [...curSel];
+        startFight(selectedWeapons[0], selectedWeapons[1]);
+    });
+    document.getElementById('resetGameBtn').addEventListener('click', () => {
+        if(selectedWeapons.length === 2) startFight(selectedWeapons[0], selectedWeapons[1]);
+    });
+    document.getElementById('resetAllSkins').addEventListener('click', () => {
+        resetAllSkins();
+    });
+    function setupLeftClickFocus(){
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const screenX = (e.clientX - rect.left) * scaleX;
+            const screenY = (e.clientY - rect.top) * scaleY;
+            const worldX = screenX + camX;
+            const worldY = screenY + camY;
+            for(let unit of units){
+                const dx = worldX - unit.x;
+                const dy = worldY - unit.y;
+                if(Math.hypot(dx,dy) <= unit.radius){
+                    focusUnit = unit;
+                    focusContainer.style.display = 'block';
+                    break;
+                }
+            }
+        });
+    }
+    function setupRightClickHp(){
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const screenX = (e.clientX - rect.left) * scaleX;
+            const screenY = (e.clientY - rect.top) * scaleY;
+            const worldX = screenX + camX;
+            const worldY = screenY + camY;
+            for(let unit of units){
+                const dx = worldX - unit.x;
+                const dy = worldY - unit.y;
+                if(Math.hypot(dx,dy) <= unit.radius){
+                    showFloatingText(unit.x, unit.y - unit.radius - 6, `${unit.hp}/${unit.maxHp}`, "#ffffaa");
+                    break;
+                }
+            }
+        });
+    }
+    setupLeftClickFocus();
+    setupRightClickHp();
+    startFight("gold", "diamond");
+})();
+</script>
+</body>
+</html>
